@@ -1,66 +1,56 @@
 import requests
 import os
+import sqlite3
 from github import Github
 
 # --- الإعدادات ---
 GITHUB_TOKEN = os.getenv('MY_GITHUB_TOKEN')
 REPO_NAME = 'shpib/phishing_data'
-FILE_PATH = 'data1.txt'
+DB_FILE = 'phishing.db'  # اسم ملف قاعدة البيانات
 
-# قائمة المصادر التي تريد الجلب منها
 SOURCES = {
     'OpenPhish': 'https://openphish.com/feed.txt',
     'PhishingArmy': 'https://phishing.army/download/phishing_army_blocklist_extended.txt',
-    # أضف هنا أي روابط أخرى تريدها
 }
 
-def update_repo():
-    if not GITHUB_TOKEN:
-        print("خطأ: لم يتم العثور على التوكن!")
-        return
-
-    all_data = []
-
-    # 1. جلب البيانات من كافة المصادر
+def update_db():
+    # 1. إعداد قاعدة البيانات
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS urls 
+                      (url TEXT PRIMARY KEY, source TEXT)''')
+    
+    # 2. جلب البيانات وإضافتها
     for name, url in SOURCES.items():
         try:
             print(f"جاري الجلب من {name}...")
             response = requests.get(url, timeout=30)
             if response.status_code == 200:
-                all_data.append(f"# --- {name} Data ---")
-                all_data.append(response.text)
-            else:
-                print(f"فشل الجلب من {name}، كود الخطأ: {response.status_code}")
+                urls = response.text.splitlines()
+                for u in urls:
+                    if u.strip():
+                        cursor.execute("INSERT OR IGNORE INTO urls (url, source) VALUES (?, ?)", (u.strip(), name))
         except Exception as e:
-            print(f"خطأ أثناء الاتصال بـ {name}: {e}")
+            print(f"خطأ في {name}: {e}")
+    
+    conn.commit()
+    conn.close()
+    print("تم تحديث قاعدة البيانات بنجاح!")
 
-    if not all_data:
-        print("لم يتم جلب أي بيانات من أي مصدر.")
-        return
-
-    final_content = "\n".join(all_data)
-
-    # 2. الاتصال بـ GitHub
+def upload_to_github():
     g = Github(GITHUB_TOKEN)
     repo = g.get_repo(REPO_NAME)
-
-    # 3. تحديث الملف
-    try:
-        try:
-            contents = repo.get_contents(FILE_PATH)
-            repo.update_file(
-                path=contents.path,
-                message="Auto-update: Refreshing phishing data from multiple sources",
-                content=final_content,
-                sha=contents.sha
-            )
-        except:
-            # إذا لم يكن الملف موجوداً، سيتم إنشاؤه
-            repo.create_file(FILE_PATH, "Initial commit: Add phishing data", final_content)
+    
+    # رفع ملف قاعدة البيانات إلى GitHub
+    with open(DB_FILE, 'rb') as file:
+        content = file.read()
         
-        print("تم التحديث بنجاح من كافة المصادر!")
-    except Exception as e:
-        print(f"حدث خطأ أثناء الرفع إلى GitHub: {e}")
+    try:
+        contents = repo.get_contents(DB_FILE)
+        repo.update_file(contents.path, "Update SQLite DB", content, contents.sha)
+    except:
+        repo.create_file(DB_FILE, "Create SQLite DB", content)
 
 if __name__ == "__main__":
-    update_repo()
+    update_db()
+    upload_to_github()
