@@ -1,0 +1,26 @@
+name: Update Phishing Data Daily
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # يعمل يومياً في منتصف الليل (توقيت UTC)
+  workflow_dispatch:     # يسمح لك بتشغيله يدوياً في أي وقت
+
+jobs:
+  update-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests PyGithub
+
+      - name: Run update script
+        env:
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        run: python secrpt.py
