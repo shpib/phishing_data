@@ -7,7 +7,7 @@ from github import Github
 # لا تضع التوكن هنا مباشرة!
 GITHUB_TOKEN = os.getenv('MY_GITHUB_TOKEN') 
 REPO_NAME = 'shpib/phishing_data'
-FILE_PATH = 'data.txt'
+FILE_PATH = 'data1.txt'
 OPENPHISH_URL = 'https://openphish.com/feed.txt'
 
 def update_repo():
