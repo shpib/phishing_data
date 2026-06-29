@@ -1,6 +1,6 @@
 {
-    "version": "2026.06.28.0233",
+    "version": "2026.06.29.0233",
     "full_db": "phishing.db.gz",
-    "latest_delta": "delta_2026.06.28.0233.json",
-    "sha256": "bf4af72acd7f0fb8095d9ac03649910befa55bb0b82315576c1bdcccd34bd9d0"
+    "latest_delta": "delta_2026.06.29.0233.json",
+    "sha256": "7b542dcfcd47707b29fb447ade4e2bbd27fff19cbc93c73b7f48db51e2875174"
 }
